@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalkulator Anuitas</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --text: #12151a; --muted: #5b6472;
+    --accent: #0f6e56; --border: #dde1e8; --soft: #e8f4f0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg) url("dollar%20.jpeg") center / cover no-repeat fixed;
+    padding: 16px;
+    min-height: 100vh;
+  }
+  /* lapisan gelap tipis agar tulisan tetap terbaca di atas gambar latar */
+  body::before {
+    content: ""; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: -1;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .title { color: #fff; }
+  .sub { color: #e6e9ef; margin: 0 0 16px; }
+
+  /* Gambar responsif: menyesuaikan lebar layar HP maupun laptop */
+  .hero { margin: 0 0 16px; }
+  .hero img {
+    display: block; width: 100%; max-width: 759px; height: auto;
+    aspect-ratio: 759 / 357;
+    object-fit: contain;
+    border-radius: 12px;
+  }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 16px;
+  }
+  .card h2.members { margin: 0 0 8px; font-size: 1.1rem; }
+  .card ol { margin: 0; padding-left: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 6px; }
+  input, select {
+    width: 100%; padding: 10px 12px; font-size: 1rem; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button {
+    margin-top: 16px; padding: 11px 20px; font-size: 1rem; font-weight: 600;
+    color: #fff; background: var(--accent); border: 0; border-radius: 8px; cursor: pointer;
+  }
+  button.ghost { background: #fff; color: var(--text); border: 1px solid var(--border); margin-left: 8px; }
+  .error { color: #d92d20; margin-top: 12px; min-height: 1.2em; }
+  .results { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .stat { background: var(--soft); border-radius: 10px; padding: 14px; }
+  .stat span { display: block; font-size: .8rem; color: var(--muted); }
+  .stat strong { font-size: 1.2rem; color: #000; word-break: break-word; }
+  .tbl { overflow-x: auto; max-height: 360px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: center; }
+  th { position: sticky; top: 0; background: var(--card); }
+  .hidden { display: none; }
+
+  /* Animasi uang jatuh */
+  #money-layer {
+    position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 999;
+  }
+  .money {
+    position: absolute; top: -60px; line-height: 1; user-select: none;
+    animation: jatuh linear forwards; will-change: transform, opacity;
+  }
+  @keyframes jatuh {
+    0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+    80%  { opacity: 1; }
+    100% { transform: translate3d(var(--drift, 0px), 110vh, 0) rotate(var(--rot, 360deg)); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #money-layer { display: none; }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 12px; }
+    .card { padding: 16px; }
+    button { width: 100%; }
+    button.ghost { margin-left: 0; margin-top: 10px; }
+  }
+</style>
+</head>
+<body>
+<div id="money-layer" aria-hidden="true"></div>
+
+<div class="wrap">
+  <h1 class="title">Kalkulator Anuitas</h1>
+  <p class="sub">Hitung cicilan tetap per periode, total bunga, dan jadwal amortisasi.</p>
+
+  <div class="hero">
+    <img src="prioritas.jpeg" alt="Prioritas">
+  </div>
+
+  <div class="card">
+    <h2 class="members">Anggota Kelompok: 3</h2>
+    <ol>
+      <li>Alma Hapsah (3)</li>
+      <li>Azizan Zahran R (7)</li>
+      <li>Haura Hafitriani (13)</li>
+      <li>Muhammad Arjuna R. S (22)</li>
+      <li>Natasya Indah S (26)</li>
+      <li>Riva Nadya A (34)</li>
+      <li>Rizky Arrazzaqu N (35)</li>
+      <li>Bima Nalla Jatandra N (8)</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label for="pokok">Jumlah pinjaman (Rp)</label>
+        <input id="pokok" type="number" min="0" step="any" value="100000000">
+      </div>
+      <div>
+        <label for="bunga">Suku bunga per tahun (%)</label>
+        <input id="bunga" type="number" min="0" step="any" value="12">
+      </div>
+      <div>
+        <label for="tahun">Jangka waktu (tahun)</label>
+        <input id="tahun" type="number" min="0" step="any" value="5">
+      </div>
+      <div>
+        <label for="frek">Frekuensi pembayaran</label>
+        <select id="frek">
+          <option value="12" selected>Bulanan</option>
+          <option value="4">Triwulanan</option>
+          <option value="2">Semesteran</option>
+          <option value="1">Tahunan</option>
+        </select>
+      </div>
+      <div>
+        <label for="tipe">Jenis anuitas</label>
+        <select id="tipe">
+          <option value="biasa" selected>Biasa (akhir periode)</option>
+          <option value="jatuh">Jatuh (awal periode)</option>
+        </select>
+      </div>
+    </div>
+    <button id="hitung">Hitung</button>
+    <button id="reset" class="ghost">Reset</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <div id="hasil" class="hidden">
+    <div class="card">
+      <div class="results">
+        <div class="stat"><span>Cicilan per periode</span><strong id="r-pmt">-</strong></div>
+        <div class="stat"><span>Jumlah periode</span><strong id="r-n">-</strong></div>
+        <div class="stat"><span>Total pembayaran</span><strong id="r-total">-</strong></div>
+        <div class="stat"><span>Total bunga</span><strong id="r-bunga">-</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;font-size:1.1rem">Jadwal amortisasi</h2>
+      <div class="tbl">
+        <table>
+          <thead>
+            <tr><th>Periode</th><th>Cicilan</th><th>Bunga</th><th>Pokok</th><th>Sisa pinjaman</th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const rupiah = (x) => "Rp " + Math.round(x).toLocaleString("id-ID");
+
+  // Animasi uang jatuh
+  function hujanUang() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const layer = $("money-layer");
+    const ikon = ["💵", "💰", "💸", "🪙", "💴"];
+    const jumlah = window.innerWidth < 600 ? 26 : 45;
+    for (let i = 0; i < jumlah; i++) {
+      const el = document.createElement("span");
+      el.className = "money";
+      el.textContent = ikon[Math.floor(Math.random() * ikon.length)];
+      const durasi = 2.2 + Math.random() * 2.2;
+      const delay = Math.random() * 0.8;
+      el.style.left = Math.random() * 100 + "vw";
+      el.style.fontSize = 20 + Math.random() * 22 + "px";
+      el.style.animationDuration = durasi + "s";
+      el.style.animationDelay = delay + "s";
+      el.style.setProperty("--drift", (Math.random() * 120 - 60) + "px");
+      el.style.setProperty("--rot", (Math.random() * 720 - 360) + "deg");
+      layer.appendChild(el);
+      setTimeout(() => el.remove(), (durasi + delay) * 1000 + 100);
+    }
+  }
+
+  function hitung() {
+    const pv = parseFloat($("pokok").value);
+    const bungaTahunan = parseFloat($("bunga").value);
+    const tahun = parseFloat($("tahun").value);
+    const m = parseInt($("frek").value, 10);
+    const jatuh = $("tipe").value === "jatuh";
+    const err = $("error");
+    err.textContent = "";
+
+    if (!(pv > 0) || !(bungaTahunan >= 0) || !(tahun > 0)) {
+      err.textContent = "Mohon isi semua kolom dengan angka yang valid (pinjaman dan jangka waktu harus lebih dari 0).";
+      $("hasil").classList.add("hidden");
+      return;
+    }
+
+    const n = Math.round(tahun * m);
+    if (n < 1 || n > 600) {
+      err.textContent = "Jumlah periode harus antara 1 dan 600.";
+      $("hasil").classList.add("hidden");
+      return;
+    }
+
+    const r = bungaTahunan / 100 / m;
+
+    // Rumus anuitas: PMT = PV * r / (1 - (1+r)^-n)
+    let pmt = r === 0 ? pv / n : (pv * r) / (1 - Math.pow(1 + r, -n));
+    if (jatuh) pmt = pmt / (1 + r); // anuitas jatuh: dibayar di awal periode
+
+    const total = pmt * n;
+    $("r-pmt").textContent = rupiah(pmt);
+    $("r-n").textContent = n + " periode";
+    $("r-total").textContent = rupiah(total);
+    $("r-bunga").textContent = rupiah(total - pv);
+
+    // Jadwal amortisasi
+    let saldo = pv;
+    let html = "";
+    for (let i = 1; i <= n; i++) {
+      const bunga = jatuh ? (saldo - pmt) * r : saldo * r;
+      const pokok = pmt - bunga;
+      saldo = Math.max(0, saldo - pokok);
+      if (i === n) saldo = 0;
+      html += `<tr><td>${i}</td><td>${rupiah(pmt)}</td><td>${rupiah(bunga)}</td><td>${rupiah(pokok)}</td><td>${rupiah(saldo)}</td></tr>`;
+    }
+    $("tbody").innerHTML = html;
+    $("hasil").classList.remove("hidden");
+
+    hujanUang(); // jalankan animasi uang setelah hitung berhasil
+  }
+
+  function reset() {
+    $("pokok").value = 100000000;
+    $("bunga").value = 12;
+    $("tahun").value = 5;
+    $("frek").value = "12";
+    $("tipe").value = "biasa";
+    $("error").textContent = "";
+    $("hasil").classList.add("hidden");
+  }
+
+  $("hitung").addEventListener("click", hitung);
+  $("reset").addEventListener("click", reset);
+  document.querySelectorAll("input").forEach((el) =>
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter") hitung(); })
+  );
+</script>
+</body>
+</html>
